@@ -164,16 +164,20 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
 
   toul = fread(tryef, sizeof(unsigned char), 4096, param.input_stream);
   fprintf(param.output_stream, "00000000 ");
-  while (blastna-args.seek<args.length&&toul!=0) {
+  uint64_t asel = blastna - args.seek;
+
+  while (asel<args.length&&toul!=0) {
     for (uint64_t i=0; i<toul; i++) {
-      uint64_t asel = blastna - args.seek;
+      asel = blastna - args.seek;
+      if (asel>=args.length)
+        break;
 
       if (args.binary_dump)
       {
         char bin[9];
         for (int bit = 7; bit >= 0; bit--)
         {
-          bin[8 - bit] = (tryef[i] & (1 << bit)) ? '1' : '0';
+          bin[7 - bit] = (tryef[i] & (1 << bit)) ? '1' : '0';
         }
         bin[8] = '\0';
         fprintf(param.output_stream, "%s", bin);
@@ -195,8 +199,8 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
       line[asel % args.columns] = (char)c;
       if ((asel+1) % args.columns == 0) {
         fputc(' ', param.output_stream);
-        fprintf(param.output_stream, "%s\n%08llX ", line, asel+1);
-      } else {
+        fprintf(param.output_stream, "%s\n%08" PRIX64 " ", line, asel + 1);
+      } else if ((asel + 1) % args.group_bytes == 0) {
         fputc(' ', param.output_stream);
       }
       blastna++;
