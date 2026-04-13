@@ -168,14 +168,25 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
     for (uint64_t i=0; i<toul; i++) {
       uint64_t asel = blastna - args.seek;
 
-      char hex[2];
-      unsigned char b = tryef[i] & 15;
-      unsigned char e = tryef[i] >> 4;
-      hex[0] = (e < 10) ? '0' + e : hex_base + (e - 10);
-      hex[1] = (b < 10) ? '0' + b : hex_base + (b - 10);
-      fputc(hex[0], stdout);
-      fputc(hex[1], stdout);
-      // Replace non-printable characters with dots
+      if (args.binary_dump)
+      {
+        char bin[9];
+        for (int bit = 7; bit >= 0; bit--)
+        {
+          bin[8 - bit] = (tryef[i] & (1 << bit)) ? '1' : '0';
+        }
+        bin[8] = '\0';
+        fprintf(stdout, "%s", bin);
+      } else {
+        char hex[3];
+        unsigned char b = tryef[i] & 15;
+        unsigned char e = tryef[i] >> 4;
+        hex[0] = (e < 10) ? '0' + e : hex_base + (e - 10);
+        hex[1] = (b < 10) ? '0' + b : hex_base + (b - 10);
+        hex[2] = '\0';
+        fprintf(stdout, "%s", hex);
+      }
+
       unsigned char c = tryef[i];
       if (!isprint(c))
       {
