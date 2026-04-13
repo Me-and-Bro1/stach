@@ -15,3 +15,19 @@ static uint64_t parse_uint(const char *str, const char *opt_name) {
   }
   return val;
 }
+
+int open_file(FILE **stream, const char *path, const char *mode) {
+#ifdef _WIN32
+  if (fopen_s(stream, path, mode) != 0) {
+    *stream = NULL;
+  }
+#else
+  *stream = fopen(path, mode);
+#endif
+
+  if (*stream == NULL) {
+    return -1;
+  }
+
+  return 0;
+}

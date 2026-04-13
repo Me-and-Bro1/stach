@@ -1,4 +1,5 @@
 #include "helper.h"
+#include <inttypes.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -139,10 +140,10 @@ void print_args(const ProgramArgs *args) {
   printf("Binary bump: %s\n", args->binary_dump ? "true" : "false");
   printf("Plain: %s\n", args->plain ? "true" : "false");
   printf("Uppercase: %s\n", args->uppercase ? "true" : "false");
-  printf("Columns: %llu\n", args->columns);
-  printf("Group bytes: %llu\n", args->group_bytes);
-  printf("Length: %llu\n", args->length);
-  printf("Seek: %llu\n", args->seek);
+  printf("Columns: %" PRIu64 "\n", args->columns);
+  printf("Group bytes: %" PRIu64 "\n", args->group_bytes);
+  printf("Length: %" PRIu64 "\n", args->length);
+  printf("Seek: %" PRIu64 "\n", args->seek);
   printf("\n");
 }
 
@@ -154,19 +155,15 @@ int main(const int argc, const char **argv) {
     .output_stream = stdout,
   };
   if (args.input_file != NULL) {
-    const errno_t err = fopen_s(&param.input_stream, args.input_file, "rb");
-    if (err) {
-      fprintf(stderr, "Error while opening input file");
+    if (open_file(&param.input_stream, args.input_file, "rb") != 0) {
+      fprintf(stderr, "Error: failed to open file '%s'\n", args.input_file);
       exit(EXIT_FAILURE);
     }
   }
 
   if (args.output_file  != NULL) {
-    const errno_t err = fopen_s(&param.output_stream, args.output_file, "wb");
-    if (err) {
-      fprintf(stderr, "Error while opening output file");
-      if (args.input_file)
-        fclose(param.input_stream);
+    if (open_file(&param.output_stream, args.output_file, "wb") != 0) {
+      fprintf(stderr, "Error: failed to open file '%s'\n", args.output_file);
       exit(EXIT_FAILURE);
     }
   }
