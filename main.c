@@ -14,24 +14,29 @@ typedef struct {
                  // file.
   bool autoskip; // -a Replaces duplicate or null lines with an asterisk (*) to
                  // shorten output.
-  bool binary_bump; // -b Displays the output in binary bits (0s and 1s) instead
+  bool binary_dump; // -b Displays the output in binary bits (0s and 1s) instead
                     // of hex.
   bool plain;     // -p Outputs a continuous hex string without line numbers or
                   // ASCII characters.
   bool uppercase; // -u Uses uppercase hexadecimal digits instead of lowercase.
 } ProgramArgs;
 
+typedef struct {
+  FILE *input_stream;
+  FILE *output_stream;
+} ProgramParam;
+
 ProgramArgs init_args(const int argc, const char **argv) {
   ProgramArgs args = {
       .input_file = NULL,
       .output_file = NULL,
       .autoskip = false,
-      .binary_bump = false,
+      .binary_dump = false,
       .plain = false,
       .uppercase = false,
       .columns = 16,
       .group_bytes = 2,
-      .length = -1ull,
+      .length = UINT64_MAX,
       .seek = 0,
   };
 
@@ -43,7 +48,7 @@ ProgramArgs init_args(const int argc, const char **argv) {
         args.input_file = argv[++i];
       if (i + 1 < argc)
         args.output_file = argv[++i];
-      break;
+      continue;
     }
 
     if (arg[0] != '-') {
@@ -70,61 +75,57 @@ ProgramArgs init_args(const int argc, const char **argv) {
     }
 
     switch (opt) {
-    case 'a':
-      args.autoskip = true;
-      break;
-    case 'b':
-      args.binary_bump = true;
-      break;
-    case 'p':
-      args.plain = true;
-      break;
-    case 'u':
-      args.uppercase = true;
-      break;
-    case 'c':
-      if (++i >= argc) {
-        fprintf(stderr, "Error: -c requires a value\n");
+      case 'a': args.autoskip = true;
+        break;
+      case 'b': args.binary_dump = true;
+        break;
+      case 'p': args.plain = true;
+        break;
+      case 'u': args.uppercase = true;
+        break;
+      case 'c':
+        if (++i >= argc) {
+          fprintf(stderr, "Error: -c requires a value\n");
+          exit(EXIT_FAILURE);
+        }
+        args.columns = parse_uint(argv[i], "-c");
+        if (args.columns == 0) {
+          fprintf(stderr, "Error: -c must be greater than 0\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 'g':
+        if (++i >= argc) {
+          fprintf(stderr, "Error: -g requires a value\n");
+          exit(EXIT_FAILURE);
+        }
+        args.group_bytes = parse_uint(argv[i], "-g");
+        if (args.group_bytes == 0) {
+          fprintf(stderr, "Error: -g must be greater than 0\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 'l':
+        if (++i >= argc) {
+          fprintf(stderr, "Error: -l requires a value\n");
+          exit(EXIT_FAILURE);
+        }
+        args.length = parse_uint(argv[i], "-l");
+        if (args.length == 0) {
+          fprintf(stderr, "Error: -l must be greater than 0\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 's':
+        if (++i >= argc) {
+          fprintf(stderr, "Error: -s requires a value\n");
+          exit(EXIT_FAILURE);
+        }
+        args.seek = parse_uint(argv[i], "-s");
+        break;
+      default:
+        fprintf(stderr, "Error: unknown option '-%c'\n", opt);
         exit(EXIT_FAILURE);
-      }
-      args.columns = parse_uint(argv[i], "-c");
-      if (args.columns == 0) {
-        fprintf(stderr, "Error: -c must be greater than 0\n");
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 'g':
-      if (++i >= argc) {
-        fprintf(stderr, "Error: -g requires a value\n");
-        exit(EXIT_FAILURE);
-      }
-      args.group_bytes = parse_uint(argv[i], "-g");
-      if (args.group_bytes == 0) {
-        fprintf(stderr, "Error: -g must be greater than 0\n");
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 'l':
-      if (++i >= argc) {
-        fprintf(stderr, "Error: -l requires a value\n");
-        exit(EXIT_FAILURE);
-      }
-      args.length = parse_uint(argv[i], "-l");
-      if (args.length == 0) {
-        fprintf(stderr, "Error: -l must be greater than 0\n");
-        exit(EXIT_FAILURE);
-      }
-      break;
-    case 's':
-      if (++i >= argc) {
-        fprintf(stderr, "Error: -s requires a value\n");
-        exit(EXIT_FAILURE);
-      }
-      args.seek = parse_uint(argv[i], "-s");
-      break;
-    default:
-      fprintf(stderr, "Error: unknown option '-%c'\n", opt);
-      exit(EXIT_FAILURE);
     }
   }
 
@@ -135,18 +136,39 @@ void print_args(const ProgramArgs *args) {
   printf("Input file: %s\n", args->input_file);
   printf("Output file: %s\n", args->output_file);
   printf("Autoskip: %s\n", args->autoskip ? "true" : "false");
-  printf("Binary bump: %s\n", args->binary_bump ? "true" : "false");
+  printf("Binary bump: %s\n", args->binary_dump ? "true" : "false");
   printf("Plain: %s\n", args->plain ? "true" : "false");
   printf("Uppercase: %s\n", args->uppercase ? "true" : "false");
-  printf("Columns: %lu\n", args->columns);
-  printf("Group bytes: %lu\n", args->group_bytes);
-  printf("Length: %lu\n", args->length);
-  printf("Seek: %lu\n", args->seek);
+  printf("Columns: %llu\n", args->columns);
+  printf("Group bytes: %llu\n", args->group_bytes);
+  printf("Length: %llu\n", args->length);
+  printf("Seek: %llu\n", args->seek);
   printf("\n");
 }
 
 int main(const int argc, const char **argv) {
   const ProgramArgs args = init_args(argc, argv);
   print_args(&args);
+  ProgramParam param = {
+    .input_stream = stdin,
+    .output_stream = stdout,
+  };
+  if (args.input_file != NULL) {
+    const errno_t err = fopen_s(&param.input_stream, args.input_file, "rb");
+    if (err) {
+      fprintf(stderr, "Error while opening input file");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  if (args.output_file  != NULL) {
+    const errno_t err = fopen_s(&param.output_stream, args.output_file, "wb");
+    if (err) {
+      fprintf(stderr, "Error while opening output file");
+      if (args.input_file)
+        fclose(param.input_stream);
+      exit(EXIT_FAILURE);
+    }
+  }
   return 0;
 }
