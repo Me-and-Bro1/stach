@@ -1,4 +1,5 @@
 #include "helper.h"
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <string.h>
@@ -174,10 +175,13 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
       hex[1] = (b < 10) ? '0' + b : hex_base + (b - 10);
       fputc(hex[0], stdout);
       fputc(hex[1], stdout);
-      if (tryef[i] == '\n') tryef[i] = '.';
-      if (tryef[i] == '\r') tryef[i] = '.';
-      if (tryef[i] == '\t') tryef[i] = '.';
-      line[asel % args.columns] = tryef[i];
+      // Replace non-printable characters with dots
+      unsigned char c = tryef[i];
+      if (!isprint(c))
+      {
+        c = '.';
+      }
+      line[asel % args.columns] = c;
       if ((asel+1) % args.columns == 0) {
         fputc(' ', stdout);
         fprintf(stdout, "%s\n%08llX ", line, asel+1);
