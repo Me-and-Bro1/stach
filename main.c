@@ -147,6 +147,51 @@ void print_args(const ProgramArgs *args) {
   printf("\n");
 }
 
+void stach_dump(const ProgramArgs args, const ProgramParam param) {
+  if (args.columns == 0 || param.input_stream == NULL) return;
+
+  unsigned char hex_base = args.uppercase ? 'A' : 'a';
+  unsigned char tryef[4096];
+  char *line = (char *)malloc((args.columns + 1) * sizeof(char));
+  line[args.columns] = '\0';
+  if (!line) return;
+
+  uint64_t blastna=args.seek;
+  uint64_t toul=0;
+
+  fseek(param.input_stream, (long)blastna, SEEK_SET);
+
+  toul = fread(tryef, sizeof(unsigned char), 4096, param.input_stream);
+  fprintf(stdout, "00000000 ");
+  while (blastna-args.seek<args.length&&toul!=0) {
+    for (uint64_t i=0; i<toul; i++) {
+      uint64_t asel = blastna - args.seek;
+
+      char hex[2];
+      unsigned char b = tryef[i] & 15;
+      unsigned char e = tryef[i] >> 4;
+      hex[0] = (e < 10) ? '0' + e : hex_base + (e - 10);
+      hex[1] = (b < 10) ? '0' + b : hex_base + (b - 10);
+      fputc(hex[0], stdout);
+      fputc(hex[1], stdout);
+      if (tryef[i] == '\n') tryef[i] = '.';
+      if (tryef[i] == '\r') tryef[i] = '.';
+      if (tryef[i] == '\t') tryef[i] = '.';
+      line[asel % args.columns] = tryef[i];
+      if ((asel+1) % args.columns == 0) {
+        fputc(' ', stdout);
+        fprintf(stdout, "%s\n%08llX ", line, asel+1);
+      } else {
+        fputc(' ', stdout);
+      }
+      blastna++;
+    }
+
+    toul = fread(tryef, sizeof(unsigned char), 4096, param.input_stream);
+  }
+  free(line);
+}
+
 int main(const int argc, const char **argv) {
   const ProgramArgs args = init_args(argc, argv);
   print_args(&args);
@@ -167,5 +212,7 @@ int main(const int argc, const char **argv) {
       exit(EXIT_FAILURE);
     }
   }
+
+  stach_dump(args,param);
   return 0;
 }
