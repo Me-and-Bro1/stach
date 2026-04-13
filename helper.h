@@ -1,7 +1,8 @@
 #pragma once
+#include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 static uint64_t parse_uint(const char *str, const char *opt_name) {
   char *end;
