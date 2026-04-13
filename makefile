@@ -1,2 +1,22 @@
-CC=gcc
+CC = clang
+
+CFLAGS = -std=c11 -Wall -Wextra -O2
+
+TARGET = stach
+
+SRCS = main.c
+
+OBJS = $(SRCS:.c=.o)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(TARGET) $(OBJS)
+
 
