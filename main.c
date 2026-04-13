@@ -163,7 +163,7 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
   fseek(param.input_stream, (long)blastna, SEEK_SET);
 
   toul = fread(tryef, sizeof(unsigned char), 4096, param.input_stream);
-  fprintf(stdout, "00000000 ");
+  fprintf(param.output_stream, "00000000 ");
   while (blastna-args.seek<args.length&&toul!=0) {
     for (uint64_t i=0; i<toul; i++) {
       uint64_t asel = blastna - args.seek;
@@ -176,7 +176,7 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
           bin[8 - bit] = (tryef[i] & (1 << bit)) ? '1' : '0';
         }
         bin[8] = '\0';
-        fprintf(stdout, "%s", bin);
+        fprintf(param.output_stream, "%s", bin);
       } else {
         char hex[3];
         unsigned char b = tryef[i] & 15;
@@ -184,7 +184,7 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
         hex[0] = (e < 10) ? '0' + e : hex_base + (e - 10);
         hex[1] = (b < 10) ? '0' + b : hex_base + (b - 10);
         hex[2] = '\0';
-        fprintf(stdout, "%s", hex);
+        fprintf(param.output_stream, "%s", hex);
       }
 
       unsigned char c = tryef[i];
@@ -194,10 +194,10 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
       }
       line[asel % args.columns] = c;
       if ((asel+1) % args.columns == 0) {
-        fputc(' ', stdout);
-        fprintf(stdout, "%s\n%08llX ", line, asel+1);
+        fputc(' ', param.output_stream);
+        fprintf(param.output_stream, "%s\n%08llX ", line, asel+1);
       } else {
-        fputc(' ', stdout);
+        fputc(' ', param.output_stream);
       }
       blastna++;
     }
