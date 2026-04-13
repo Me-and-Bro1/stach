@@ -1,6 +1,6 @@
 CC = clang
 
-CFLAGS = -std=c11 -Wall -Wextra -O2
+CFLAGS = -std=c11 -Wall -Wextra -Wnull-dereference -O2
 
 TARGET = stach
 
@@ -19,4 +19,4 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(TARGET) $(OBJS)
 
-
+.PHONY: all clean

@@ -4,10 +4,16 @@ Stach is hexdumper software written in C.
 
 ## Building
 
+Prerequisites: `clang` or `gcc` compiler and `make` utility.
+
 To build Stach, run the following command in the terminal:
 
 ```bash
+# Using clang
 make
+
+# Using gcc
+make CC=gcc
 ```
 
 ## Usage

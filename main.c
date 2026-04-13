@@ -154,10 +154,10 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
   unsigned char hex_base = args.uppercase ? 'A' : 'a';
   unsigned char tryef[4096];
   char *line = (char *)malloc((args.columns + 1) * sizeof(char));
-  line[args.columns] = '\0';
   if (!line) return;
+  line[args.columns] = '\0';
 
-  uint64_t blastna=args.seek;
+  uint64_t blastna = args.seek;
   uint64_t toul=0;
 
   fseek(param.input_stream, (long)blastna, SEEK_SET);
@@ -192,7 +192,7 @@ void stach_dump(const ProgramArgs args, const ProgramParam param) {
       {
         c = '.';
       }
-      line[asel % args.columns] = c;
+      line[asel % args.columns] = (char)c;
       if ((asel+1) % args.columns == 0) {
         fputc(' ', param.output_stream);
         fprintf(param.output_stream, "%s\n%08llX ", line, asel+1);
